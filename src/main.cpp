@@ -1,43 +1,17 @@
-#include <pybind11/pybind11.h>
-
-#define STRINGIFY(x) #x
-#define MACRO_STRINGIFY(x) STRINGIFY(x)
-
-int add(int i, int j) {
-    return i + j;
-}
+#include <pybind11/embed.h>
+#include <iostream>
 
 namespace py = pybind11;
+using namespace py::literals;
 
-PYBIND11_MODULE(cmake_example, m) {
-    m.doc() = R"pbdoc(
-        Pybind11 example plugin
-        -----------------------
+int main() {
+    py::scoped_interpreter guard{};
 
-        .. currentmodule:: cmake_example
+    auto locals = py::dict("name"_a="World", "number"_a=42);
+    py::exec(R"(
+        message = "Hello, {name}! The answer is {number}".format(**locals())
+    )", py::globals(), locals);
 
-        .. autosummary::
-           :toctree: _generate
-
-           add
-           subtract
-    )pbdoc";
-
-    m.def("add", &add, R"pbdoc(
-        Add two numbers
-
-        Some other explanation about the add function.
-    )pbdoc");
-
-    m.def("subtract", [](int i, int j) { return i - j; }, R"pbdoc(
-        Subtract two numbers
-
-        Some other explanation about the subtract function.
-    )pbdoc");
-
-#ifdef VERSION_INFO
-    m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
-#else
-    m.attr("__version__") = "dev";
-#endif
+    auto message = locals["message"].cast<std::string>();
+    std::cout << message;
 }
